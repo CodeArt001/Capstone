@@ -1,0 +1,43 @@
+# Sensitive properties & Environment files
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+.env
+
+# Build outputs
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Maven wrapper JAR
+.mvn/wrapper/maven-wrapper.jar
+
+# Help files
+HELP.md
+
+# STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code
+.vscode/
