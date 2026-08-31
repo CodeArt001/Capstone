@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import com.example.demo.entity.Order;
 @Repository
     public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByUserId(Long userId);
+ List<Order> findByUserEmailOrderByCreatedAtDesc(String email);
 }
 

@@ -29,12 +29,6 @@ public class JwAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
-@Override
-protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-    String path = request.getRequestURI();
-    return path.startsWith("/auth") || path.startsWith("/api/auth");
-}
-
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -55,20 +49,36 @@ protected boolean shouldNotFilter(HttpServletRequest request) throws ServletExce
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = userRepository.findByEmail(email).orElse(null);
 
-            // Check email verification (FR-AUTH-02) and token validity
-            if (user != null && user.getEmailVerified() && jwtUtil.validateToken(token, email)) {
+            // DEBUG LOGGING - Check terminal output when sending request from Bruno
+            System.out.println("=== JWT FILTER DEBUG ===");
+            System.out.println("Extracted Email: " + email);
+            System.out.println("User Found: " + (user != null));
+            if (user != null) {
+                System.out.println("Email Verified: " + user.getEmailVerified());
+                System.out.println("Is Token Valid: " + jwtUtil.validateToken(token, email));
+            }
+
+            if (user != null && Boolean.TRUE.equals(user.getEmailVerified()) && jwtUtil.validateToken(token, email)) {
                 
-                // Convert User roles directly to Spring Security GrantedAuthorities
                 List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                        .map(role -> {
+                            String roleName = role.getName();
+                            if (!roleName.startsWith("ROLE_")) {
+                                roleName = "ROLE_" + roleName;
+                            }
+                            return new SimpleGrantedAuthority(roleName);
+                        })
                         .collect(Collectors.toList());
 
-                // Set user directly as the principal
+                System.out.println("Assigned Authorities: " + authorities);
+
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(user, null, authorities);
+                        new UsernamePasswordAuthenticationToken(email, null, authorities);
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                System.out.println("AUTHENTICATION FAILED IN FILTER!");
             }
         }
 
