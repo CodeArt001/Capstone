@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,6 +12,8 @@ import com.example.demo.dto.CartItemRedisDTO;
 import com.example.demo.dto.CartRedisDTO;
 import com.example.demo.dto.OrderItemResponseDTO;
 import com.example.demo.dto.OrderResponseDTO;
+import com.example.demo.dto.PaymentResponseDTO;
+import com.example.demo.dto.PaymentRequestDTO;
 import com.example.demo.entity.Order;
 import com.example.demo.entity.OrderItem;
 import com.example.demo.entity.Product;
@@ -91,7 +94,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Clear cart in Redis upon successful checkout
+        
         cartService.clearCart(userEmail);
 
         return mapToResponseDTO(savedOrder);
@@ -106,27 +109,57 @@ public class OrderService {
     }
 
     private OrderResponseDTO mapToResponseDTO(Order order) {
-    List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
-            .map(item -> OrderItemResponseDTO.builder()
-                    .id(item.getId())
-                    .productId(item.getProduct().getId()) // <--- UPDATE THIS LINE
-                    .productName(item.getProductName())
-                    .productImageUrl(item.getProductImageUrl())
-                    .unitPrice(item.getUnitPrice())
-                    .quantity(item.getQuantity())
-                    .totalPrice(item.getTotalPrice())
-                    .build())
-            .collect(Collectors.toList());
+            List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
+                            .map(item -> OrderItemResponseDTO.builder()
+                                            .id(item.getId())
+                                            .productId(item.getProduct().getId()) // <--- UPDATE THIS LINE
+                                            .productName(item.getProductName())
+                                            .productImageUrl(item.getProductImageUrl())
+                                            .unitPrice(item.getUnitPrice())
+                                            .quantity(item.getQuantity())
+                                            .totalPrice(item.getTotalPrice())
+                                            .build())
+                            .collect(Collectors.toList());
 
-    return OrderResponseDTO.builder()
-            .id(order.getId())
-            .userEmail(order.getUser().getEmail())
-            .status(order.getStatus())
-            .subtotal(order.getSubtotal())
-            .shippingFee(order.getShippingFee())
-            .grandTotal(order.getGrandTotal())
-            .items(itemDTOs)
-            .createdAt(order.getCreatedAt())
-            .build(); 
+            return OrderResponseDTO.builder()
+                            .id(order.getId())
+                            .userEmail(order.getUser().getEmail())
+                            .status(order.getStatus())
+                            .subtotal(order.getSubtotal())
+                            .shippingFee(order.getShippingFee())
+                            .grandTotal(order.getGrandTotal())
+                            .items(itemDTOs)
+                            .createdAt(order.getCreatedAt())
+                            .build();
+    }
+@Transactional
+public PaymentResponseDTO processPayment(PaymentRequestDTO request, String userEmail) {
+    Order order = orderRepository.findById(request.getOrderId())
+            .orElseThrow(() -> new RuntimeException("Order not found with ID: " + request.getOrderId()));
+
+    
+    if (!order.getUser().getEmail().equalsIgnoreCase(userEmail)) {
+        throw new RuntimeException("Unauthorized to pay for this order");
+    }
+
+    if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+        throw new RuntimeException("Order cannot be paid. Current status: " + order.getStatus());
+    }
+
+
+    order.setStatus(OrderStatus.PAID);
+    Order updatedOrder = orderRepository.save(order);
+
+    
+    String transactionRef = "TXN-" + System.currentTimeMillis();
+
+    return PaymentResponseDTO.builder()
+            .OrderId(updatedOrder.getId())
+            .status(updatedOrder.getStatus())
+            .amountPaid(updatedOrder.getGrandTotal())
+            .transactionalId(transactionRef)
+            .message("Payment processed successfully")
+            .paidAt(LocalDateTime.now())
+            .build();
 }
 }
