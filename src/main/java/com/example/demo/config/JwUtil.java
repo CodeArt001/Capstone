@@ -10,10 +10,10 @@ import java.security.Key;
 import java.util.Date;
 @Component
 public class JwUtil {
-     @Value("${jwt.secret}")
+   @Value("${jwt.secret:MySuperSecretKeyThatIsAtLeast32BytesLongForHS256Algorithm}")
     private String secret;
 
-    @Value("${jwt.access-token-expiration}")
+    @Value("${jwt.access-token-expiration:86400000}")
     private long accessTokenExpiration;
 
     private Key getSigningKey() {
