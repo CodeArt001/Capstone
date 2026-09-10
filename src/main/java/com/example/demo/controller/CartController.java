@@ -26,7 +26,6 @@ public class CartController {
 
     private final CartService cartService;
 
-    // GET /cart
     @GetMapping
     public ResponseEntity<CartResponseDTO> getCart(Authentication authentication) {
         return ResponseEntity.ok(cartService.getCart(authentication.getName()));
@@ -40,7 +39,7 @@ public class CartController {
         return ResponseEntity.ok(cartService.addToCart(authentication.getName(), dto));
     }
 
-    // PUT /cart/items/{productId}
+  
     @PutMapping("/items/{productId}")
     public ResponseEntity<CartResponseDTO> updateQuantity(
             Authentication authentication,
@@ -49,7 +48,6 @@ public class CartController {
         return ResponseEntity.ok(cartService.updateCartItemQuantity(authentication.getName(), productId, quantity));
     }
 
-    // DELETE /cart/items/{productId}
     @DeleteMapping("/items/{productId}")
     public ResponseEntity<CartResponseDTO> removeItem(
             Authentication authentication,
@@ -57,7 +55,7 @@ public class CartController {
         return ResponseEntity.ok(cartService.removeCartItem(authentication.getName(), productId));
     }
 
-    // DELETE /cart
+  
     @DeleteMapping
     public ResponseEntity<Void> clearCart(Authentication authentication) {
         cartService.clearCart(authentication.getName());

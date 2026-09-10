@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,8 +29,22 @@ public class OrderController {
                 .body(orderService.checkout(authentication.getName()));
     }
 
+    // @GetMapping
+    // public ResponseEntity<List<OrderResponseDTO>> getUserOrders(Authentication authentication) {
+    //     return ResponseEntity.ok(orderService.getUserOrders(authentication.getName()));
+    // }
+
     @GetMapping
-    public ResponseEntity<List<OrderResponseDTO>> getUserOrders(Authentication authentication) {
-        return ResponseEntity.ok(orderService.getUserOrders(authentication.getName()));
-    }
+public ResponseEntity<List<OrderResponseDTO>> getUserOrders(Authentication authentication) {
+    List<OrderResponseDTO> orders = orderService.getUserOrders(authentication.getName());
+    return ResponseEntity.ok(orders);
+}
+
+@GetMapping("/{id}")
+public ResponseEntity<OrderResponseDTO> getOrderById(
+        @PathVariable Long id, 
+        Authentication authentication) {
+    OrderResponseDTO order = orderService.getOrderById(id, authentication.getName());
+    return ResponseEntity.ok(order);
+}
 }

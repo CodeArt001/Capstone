@@ -3,6 +3,8 @@ package com.example.demo.security;
 import com.example.demo.config.JwUtil;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,7 +46,17 @@ public class JwAuthFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
+        String email = null;
+
+        try {
+            email = jwtUtil.extractEmail(token);
+        } catch (ExpiredJwtException e) {
+            System.out.println("=== JWT FILTER DEBUG ===");
+            System.out.println("Token expired: " + e.getMessage());
+        } catch (JwtException e) {
+            System.out.println("=== JWT FILTER DEBUG ===");
+            System.out.println("Invalid token signature or format: " + e.getMessage());
+        }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = userRepository.findByEmail(email).orElse(null);

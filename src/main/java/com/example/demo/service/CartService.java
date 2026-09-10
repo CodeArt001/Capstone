@@ -3,6 +3,7 @@ package com.example.demo.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -10,23 +11,21 @@ import java.util.stream.Collectors;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-
 import com.example.demo.dto.CartItemRequestDTO;
 import com.example.demo.dto.CartItemResponseDTO;
 import com.example.demo.dto.CartItemRedisDTO;
 import com.example.demo.dto.CartRedisDTO;
 import com.example.demo.dto.CartResponseDTO;
 import com.example.demo.entity.Product;
-
 import com.example.demo.repository.ProductRepository;
-
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class CartService {
-   private final RedisTemplate<String, Object> redisTemplate;
+
+    private final RedisTemplate<String, Object> redisTemplate;
     private final ProductRepository productRepository;
 
     private static final String CART_KEY_PREFIX = "cart:";
@@ -36,13 +35,11 @@ public class CartService {
         return CART_KEY_PREFIX + userEmail;
     }
 
-    // Get customer's cart from Redis
     public CartResponseDTO getCart(String userEmail) {
         CartRedisDTO cart = fetchOrCreateCart(userEmail);
         return buildCartResponse(cart);
     }
 
-    // Add product to cart (or update quantity if already present)
     public CartResponseDTO addToCart(String userEmail, CartItemRequestDTO dto) {
         Product product = productRepository.findByIdAndActiveTrue(dto.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found or inactive with id: " + dto.getProductId()));
@@ -53,8 +50,11 @@ public class CartService {
 
         CartRedisDTO cart = fetchOrCreateCart(userEmail);
 
+        // Find existing item WITH MATCHING size and color
         Optional<CartItemRedisDTO> existingItemOpt = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(product.getId()))
+                .filter(item -> item.getProductId().equals(product.getId())
+                        && Objects.equals(item.getSize(), dto.getSize())
+                        && Objects.equals(item.getColor(), dto.getColor()))
                 .findFirst();
 
         if (existingItemOpt.isPresent()) {
@@ -65,7 +65,7 @@ public class CartService {
                 throw new RuntimeException("Requested total quantity exceeds available stock");
             }
             existingItem.setQuantity(newQuantity);
-            existingItem.setUnitPrice(product.getPrice()); // Keep price up to date
+            existingItem.setUnitPrice(product.getPrice());
         } else {
             CartItemRedisDTO newItem = CartItemRedisDTO.builder()
                     .productId(product.getId())
@@ -73,6 +73,8 @@ public class CartService {
                     .productImageUrl(product.getImageUrl())
                     .unitPrice(product.getPrice())
                     .quantity(dto.getQuantity())
+                    .size(dto.getSize())    // UPDATED: Set size
+                    .color(dto.getColor())  // UPDATED: Set color
                     .build();
             cart.getItems().add(newItem);
         }
@@ -81,7 +83,6 @@ public class CartService {
         return buildCartResponse(cart);
     }
 
-    // Update quantity of an item directly
     public CartResponseDTO updateCartItemQuantity(String userEmail, Long productId, Integer quantity) {
         CartRedisDTO cart = fetchOrCreateCart(userEmail);
 
@@ -114,7 +115,6 @@ public class CartService {
         return buildCartResponse(cart);
     }
 
-    // Remove single item from cart by Product ID
     public CartResponseDTO removeCartItem(String userEmail, Long productId) {
         CartRedisDTO cart = fetchOrCreateCart(userEmail);
         cart.getItems().removeIf(item -> item.getProductId().equals(productId));
@@ -122,12 +122,10 @@ public class CartService {
         return buildCartResponse(cart);
     }
 
-    // Clear entire cart from Redis
     public void clearCart(String userEmail) {
         redisTemplate.delete(getCartKey(userEmail));
     }
 
-    // Fetch raw cart object for Checkout Service
     public CartRedisDTO getRawCart(String userEmail) {
         return fetchOrCreateCart(userEmail);
     }
@@ -156,12 +154,14 @@ public class CartService {
             BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 
             return CartItemResponseDTO.builder()
-                    .id(item.getProductId()) // Map product id to DTO item identifier
+                    .id(item.getProductId())
                     .productId(item.getProductId())
                     .productName(item.getProductName())
                     .productImageUrl(item.getProductImageUrl())
                     .unitPrice(item.getUnitPrice())
                     .quantity(item.getQuantity())
+                    .size(item.getSize())  
+                    .color(item.getColor())  
                     .totalPrice(itemTotal)
                     .build();
         }).collect(Collectors.toList());

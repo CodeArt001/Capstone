@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -137,7 +138,6 @@ public PaymentResponseDTO processPayment(PaymentRequestDTO request, String userE
     Order order = orderRepository.findById(request.getOrderId())
             .orElseThrow(() -> new RuntimeException("Order not found with ID: " + request.getOrderId()));
 
-    
     if (!order.getUser().getEmail().equalsIgnoreCase(userEmail)) {
         throw new RuntimeException("Unauthorized to pay for this order");
     }
@@ -146,11 +146,9 @@ public PaymentResponseDTO processPayment(PaymentRequestDTO request, String userE
         throw new RuntimeException("Order cannot be paid. Current status: " + order.getStatus());
     }
 
-
     order.setStatus(OrderStatus.PAID);
     Order updatedOrder = orderRepository.save(order);
 
-    
     String transactionRef = "TXN-" + System.currentTimeMillis();
 
     return PaymentResponseDTO.builder()
@@ -161,5 +159,19 @@ public PaymentResponseDTO processPayment(PaymentRequestDTO request, String userE
             .message("Payment processed successfully")
             .paidAt(LocalDateTime.now())
             .build();
+}
+
+
+public OrderResponseDTO getOrderById(Long id, String username) {
+    Order order = orderRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+
+  
+    if (!order.getUser().getEmail().equals(username)) {
+        throw new RuntimeException("You do not have permission to view this order");
+    }
+
+ 
+    return mapToResponseDTO(order);
 }
 }
