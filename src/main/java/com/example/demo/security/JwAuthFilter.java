@@ -31,6 +31,12 @@ public class JwAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
+    // Skip JWT processing for browser CORS preflight (OPTIONS) requests
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        return "OPTIONS".equalsIgnoreCase(request.getMethod());
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -61,7 +67,6 @@ public class JwAuthFilter extends OncePerRequestFilter {
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = userRepository.findByEmail(email).orElse(null);
 
-            // DEBUG LOGGING - Check terminal output when sending request from Bruno
             System.out.println("=== JWT FILTER DEBUG ===");
             System.out.println("Extracted Email: " + email);
             System.out.println("User Found: " + (user != null));
