@@ -8,7 +8,6 @@ import com.example.demo.service.CloudinaryService;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,21 +17,24 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/products")
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ProductController {
-    @Autowired
-    private ProductRepository productRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
-
-    @Autowired
-    private CloudinaryService cloudinaryService;
-
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final CloudinaryService cloudinaryService;
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
         return ResponseEntity.ok(productRepository.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+        return productRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping(consumes = {"multipart/form-data"})
@@ -41,12 +43,15 @@ public class ProductController {
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stockQuantity") Integer stockQuantity,
-            @RequestParam("categoryId") Long categoryId,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam("image") MultipartFile file) throws Exception {
 
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId).orElse(null);
+        }
 
+        
         String imageUrl = cloudinaryService.uploadImage(file);
 
         Product product = Product.builder()
