@@ -67,15 +67,17 @@ public class JwAuthFilter extends OncePerRequestFilter {
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = userRepository.findByEmail(email).orElse(null);
 
+           boolean isTokenValid = jwtUtil.validateToken(token, email);
+boolean isEmailVerified = user != null && user.getEmailVerified();
             System.out.println("=== JWT FILTER DEBUG ===");
             System.out.println("Extracted Email: " + email);
             System.out.println("User Found: " + (user != null));
             if (user != null) {
-                System.out.println("Email Verified: " + user.getEmailVerified());
-                System.out.println("Is Token Valid: " + jwtUtil.validateToken(token, email));
+                System.out.println("Email Verified Flag: " + user.getEmailVerified());
+                System.out.println("Is Token Valid: " + isTokenValid);
             }
 
-            if (user != null && Boolean.TRUE.equals(user.getEmailVerified()) && jwtUtil.validateToken(token, email)) {
+            if (user != null && isEmailVerified && isTokenValid) {
                 
                 List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                         .map(role -> {
