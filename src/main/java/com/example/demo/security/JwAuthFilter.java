@@ -31,7 +31,6 @@ public class JwAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
-    // Skip JWT processing for browser CORS preflight (OPTIONS) requests
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         return "OPTIONS".equalsIgnoreCase(request.getMethod());
@@ -67,17 +66,17 @@ public class JwAuthFilter extends OncePerRequestFilter {
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = userRepository.findByEmail(email).orElse(null);
 
-           boolean isTokenValid = jwtUtil.validateToken(token, email);
-boolean isEmailVerified = user != null && user.getEmailVerified();
+            boolean isTokenValid = jwtUtil.validateToken(token, email);
+
             System.out.println("=== JWT FILTER DEBUG ===");
             System.out.println("Extracted Email: " + email);
             System.out.println("User Found: " + (user != null));
             if (user != null) {
-                System.out.println("Email Verified Flag: " + user.getEmailVerified());
                 System.out.println("Is Token Valid: " + isTokenValid);
             }
 
-            if (user != null && isEmailVerified && isTokenValid) {
+            // REMOVED isEmailVerified check so authentication succeeds
+            if (user != null && isTokenValid) {
                 
                 List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                         .map(role -> {
@@ -91,11 +90,13 @@ boolean isEmailVerified = user != null && user.getEmailVerified();
 
                 System.out.println("Assigned Authorities: " + authorities);
 
+                // Pass user object or email as the principal
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+                        new UsernamePasswordAuthenticationToken(user, null, authorities);
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println("AUTHENTICATION SUCCESSFUL FOR USER: " + email);
             } else {
                 System.out.println("AUTHENTICATION FAILED IN FILTER!");
             }

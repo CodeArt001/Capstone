@@ -57,7 +57,7 @@ private BigDecimal totalAmount;
 @Column(name = "grand_total", nullable = false)
 private BigDecimal grandTotal;
 
-// Maps the unexpected DB column to grandTotal to satisfy the NOT NULL constraint
+
 @Column(name = "price_at_purchase", insertable = false, updatable = false)
 private BigDecimal priceAtPurchase;
 
