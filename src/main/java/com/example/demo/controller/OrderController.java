@@ -29,22 +29,17 @@ public class OrderController {
                 .body(orderService.checkout(authentication.getName()));
     }
 
-    // @GetMapping
-    // public ResponseEntity<List<OrderResponseDTO>> getUserOrders(Authentication authentication) {
-    //     return ResponseEntity.ok(orderService.getUserOrders(authentication.getName()));
-    // }
-
     @GetMapping
-public ResponseEntity<List<OrderResponseDTO>> getUserOrders(Authentication authentication) {
-    List<OrderResponseDTO> orders = orderService.getUserOrders(authentication.getName());
-    return ResponseEntity.ok(orders);
-}
+    public ResponseEntity<List<OrderResponseDTO>> getUserOrders(Authentication authentication) {
+        List<OrderResponseDTO> orders = orderService.getUserOrders(authentication.getName());
+        return ResponseEntity.ok(orders);
+    }
 
-@GetMapping("/{id}")
-public ResponseEntity<OrderResponseDTO> getOrderById(
-        @PathVariable Long id, 
-        Authentication authentication) {
-    OrderResponseDTO order = orderService.getOrderById(id, authentication.getName());
-    return ResponseEntity.ok(order);
-}
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderResponseDTO> getOrderById(
+            @PathVariable Long id, 
+            Authentication authentication) {
+        OrderResponseDTO order = orderService.getOrderById(id, authentication.getName());
+        return ResponseEntity.ok(order);
+    }
 }

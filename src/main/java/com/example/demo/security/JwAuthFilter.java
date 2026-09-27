@@ -75,7 +75,6 @@ public class JwAuthFilter extends OncePerRequestFilter {
                 System.out.println("Is Token Valid: " + isTokenValid);
             }
 
-            // REMOVED isEmailVerified check so authentication succeeds
             if (user != null && isTokenValid) {
                 
                 List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
@@ -90,9 +89,9 @@ public class JwAuthFilter extends OncePerRequestFilter {
 
                 System.out.println("Assigned Authorities: " + authorities);
 
-                // Pass user object or email as the principal
+                // ✅ FIX: Pass user.getEmail() as principal so authentication.getName() returns the email string
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(user, null, authorities);
+                        new UsernamePasswordAuthenticationToken(user.getEmail(), null, authorities);
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
