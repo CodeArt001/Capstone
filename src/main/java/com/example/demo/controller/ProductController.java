@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping({"/products", "/api/products"})
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ProductController {
@@ -51,7 +51,6 @@ public class ProductController {
             category = categoryRepository.findById(categoryId).orElse(null);
         }
 
-        
         String imageUrl = cloudinaryService.uploadImage(file);
 
         Product product = Product.builder()
