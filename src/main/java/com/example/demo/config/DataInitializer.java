@@ -33,7 +33,6 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Categories seeded successfully!");
         }
 
-        
         if (productRepository.count() == 0) {
             Category sneakers = categoryRepository.findByName("Sneakers")
                     .orElseGet(() -> categoryRepository.findAll().get(0));
@@ -46,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
                         .stockQuantity(20)
                         .active(true)
                         .category(sneakers)
-                        .imageUrl("https://res.cloudinary.com/your-cloud-name/image/upload/v1/shoe1.png") // Replace with actual image URL
+                        .imageUrl("https://images.unsplash.com/photo-1542291026-7eec264c27ff") // Reliable sample shoe image
                         .build(),
 
                 Product.builder()
@@ -56,7 +55,7 @@ public class DataInitializer implements CommandLineRunner {
                         .stockQuantity(15)
                         .active(true)
                         .category(sneakers)
-                        .imageUrl("https://res.cloudinary.com/your-cloud-name/image/upload/v1/shoe2.png")
+                        .imageUrl("https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a") // Reliable sample shoe image
                         .build()
             );
 
