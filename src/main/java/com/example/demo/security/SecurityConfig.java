@@ -43,24 +43,32 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults()) // Uses the CorsConfigurationSource bean below
+            .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
+                // Public CORS preflight options
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Auth & API docs
                 .requestMatchers("/auth/**", "/api/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/products/**", "/categories/**", "/reviews/**").permitAll()
+
+                // Public GET endpoints (Supports both direct and /api prefixed routes)
+                .requestMatchers(HttpMethod.GET, 
+                    "/products", "/products/**", "/api/products", "/api/products/**",
+                    "/categories", "/categories/**", "/api/categories", "/api/categories/**",
+                    "/reviews", "/reviews/**", "/api/reviews", "/api/reviews/**"
+                ).permitAll()
 
                 // Authenticated user endpoints
-                .requestMatchers(HttpMethod.POST, "/reviews/**").authenticated()
-                .requestMatchers("/cart/**", "/orders/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/reviews/**", "/api/reviews/**").authenticated()
+                .requestMatchers("/cart/**", "/api/cart/**", "/orders/**", "/api/orders/**").authenticated()
 
-                // Admin endpoints (Supports both "ROLE_ADMIN" and "ADMIN" authority strings)
-                .requestMatchers("/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/products/**", "/categories/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/products/**", "/categories/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/products/**", "/categories/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+                // Admin endpoints
+                .requestMatchers("/admin/**", "/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/products/**", "/api/products/**", "/categories/**", "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/products/**", "/api/products/**", "/categories/**", "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/products/**", "/api/products/**", "/categories/**", "/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
 
                 .anyRequest().authenticated()
             )
