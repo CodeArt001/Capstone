@@ -25,11 +25,37 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         
         if (categoryRepository.count() == 0) {
-            Category sneakers = Category.builder().name("Sneakers").active(true).build();
-            Category boots = Category.builder().name("Boots").active(true).build();
-            Category sandals = Category.builder().name("Sandals").active(true).build();
+            Category sneakers = Category.builder()
+                    .name("Sneakers")
+                    .active(true)
+                    .imageUrl("https://images.unsplash.com/photo-1542291026-7eec264c27ff")
+                    .build();
 
-            categoryRepository.saveAll(List.of(sneakers, boots, sandals));
+            Category casual = Category.builder()
+                    .name("Casual")
+                    .active(true)
+                    .imageUrl("https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77")
+                    .build();
+
+            Category formal = Category.builder()
+                    .name("Formal")
+                    .active(true)
+                    .imageUrl("https://images.unsplash.com/photo-1614252235316-8c857d38b5f4")
+                    .build();
+
+            Category limitedEdition = Category.builder()
+                    .name("Limited Edition")
+                    .active(true)
+                    .imageUrl("https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a")
+                    .build();
+
+            Category leather = Category.builder()
+                    .name("Leather")
+                    .active(true)
+                    .imageUrl("https://images.unsplash.com/photo-1533867617858-e7b97e060509")
+                    .build();
+
+            categoryRepository.saveAll(List.of(sneakers, casual, formal, limitedEdition, leather));
             System.out.println("Categories seeded successfully!");
         }
 
@@ -45,7 +71,7 @@ public class DataInitializer implements CommandLineRunner {
                         .stockQuantity(20)
                         .active(true)
                         .category(sneakers)
-                        .imageUrl("https://images.unsplash.com/photo-1542291026-7eec264c27ff") // Reliable sample shoe image
+                        .imageUrl("https://images.unsplash.com/photo-1542291026-7eec264c27ff")
                         .build(),
 
                 Product.builder()
@@ -55,7 +81,7 @@ public class DataInitializer implements CommandLineRunner {
                         .stockQuantity(15)
                         .active(true)
                         .category(sneakers)
-                        .imageUrl("https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a") // Reliable sample shoe image
+                        .imageUrl("https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a")
                         .build()
             );
 
