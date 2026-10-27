@@ -8,8 +8,9 @@ The following was discovered as part of building this project:
 Set the backend environment variable `PAYSTACK_SECRET_KEY` to your Paystack secret key.
 Checkout accepts the Paystack transaction `reference` in its JSON body and verifies it
 with Paystack before creating an order.
-The expected amount is calculated from current product prices and shipping on the server,
-and compared in the configured currency (`PAYSTACK_CURRENCY`, default `NGN`).
+The expected amount is calculated from current product prices and shipping on the server.
+For NGN payments, the USD order total is converted using `EXCHANGE_RATE` (default `1500`)
+and compared to Paystack's amount in kobo. `PAYSTACK_CURRENCY` defaults to `NGN`.
 
 ### Reference Documentation
 For further reference, please consider the following sections:

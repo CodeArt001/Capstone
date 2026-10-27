@@ -40,6 +40,7 @@ public class OrderService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaystackService paystackService;
     private final String paystackCurrency;
+    private final BigDecimal exchangeRate;
 
     private static final BigDecimal FIXED_SHIPPING_FEE = new BigDecimal("10.00");
 
@@ -50,7 +51,8 @@ public class OrderService {
             CartService cartService,
             PaymentTransactionRepository paymentTransactionRepository,
             PaystackService paystackService,
-            @Value("${paystack.currency:NGN}") String paystackCurrency) {
+            @Value("${paystack.currency:NGN}") String paystackCurrency,
+            @Value("${paystack.exchange-rate:1500}") BigDecimal exchangeRate) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
@@ -58,6 +60,10 @@ public class OrderService {
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.paystackService = paystackService;
         this.paystackCurrency = paystackCurrency;
+        if (exchangeRate.signum() <= 0) {
+            throw new IllegalArgumentException("Paystack exchange rate must be greater than zero");
+        }
+        this.exchangeRate = exchangeRate;
     }
 
     @Transactional
@@ -92,9 +98,12 @@ public class OrderService {
         }
 
         BigDecimal grandTotal = subtotal.add(FIXED_SHIPPING_FEE);
-        long expectedAmount = grandTotal
-                .setScale(2, RoundingMode.UNNECESSARY)
+        BigDecimal paystackAmount = "NGN".equalsIgnoreCase(paystackCurrency)
+                ? grandTotal.multiply(exchangeRate)
+                : grandTotal;
+        long expectedAmount = paystackAmount
                 .movePointRight(2)
+                .setScale(0, RoundingMode.HALF_UP)
                 .longValueExact();
         PaystackTransaction verifiedPayment = paystackService.verifyTransaction(paymentReference);
         if (!"success".equalsIgnoreCase(verifiedPayment.status())

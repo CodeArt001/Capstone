@@ -63,7 +63,8 @@ class OrderServiceTest {
                 cartService,
                 paymentTransactionRepository,
                 paystackService,
-                "NGN");
+                "NGN",
+                new BigDecimal("1500"));
         request = new CheckoutRequestDTO();
         request.setReference("paystack-ref-123");
 
@@ -86,7 +87,7 @@ class OrderServiceTest {
     void createsPaidOrderOnlyAfterSuccessfulMatchingPayment() {
         givenCartAndUser();
         when(paystackService.verifyTransaction(request.getReference()))
-                .thenReturn(new PaystackTransaction("paystack-ref-123", "success", 6100, "NGN"));
+                .thenReturn(new PaystackTransaction("paystack-ref-123", "success", 9_150_000, "NGN"));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         orderService.checkout("buyer@example.com", request);
@@ -123,7 +124,7 @@ class OrderServiceTest {
     void doesNotCreateOrderWhenVerifiedAmountDoesNotMatchCartTotal() {
         givenCartAndUser();
         when(paystackService.verifyTransaction(request.getReference()))
-                .thenReturn(new PaystackTransaction("paystack-ref-123", "success", 6000, "NGN"));
+                .thenReturn(new PaystackTransaction("paystack-ref-123", "success", 9_150_001, "NGN"));
 
         assertThrows(RuntimeException.class,
                 () -> orderService.checkout("buyer@example.com", request));
@@ -136,7 +137,7 @@ class OrderServiceTest {
     void doesNotCreateOrderWhenVerifiedCurrencyDoesNotMatch() {
         givenCartAndUser();
         when(paystackService.verifyTransaction(request.getReference()))
-                .thenReturn(new PaystackTransaction("paystack-ref-123", "success", 6100, "USD"));
+                .thenReturn(new PaystackTransaction("paystack-ref-123", "success", 9_150_000, "USD"));
 
         assertThrows(RuntimeException.class,
                 () -> orderService.checkout("buyer@example.com", request));
