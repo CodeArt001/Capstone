@@ -1,13 +1,17 @@
 package com.example.demo.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
+import com.example.demo.dto.CheckoutRequestDTO;
 import com.example.demo.dto.CartItemRedisDTO;
 import com.example.demo.dto.CartRedisDTO;
 import com.example.demo.dto.OrderItemResponseDTO;
@@ -16,28 +20,53 @@ import com.example.demo.dto.PaymentRequestDTO;
 import com.example.demo.dto.PaymentResponseDTO;
 import com.example.demo.entity.Order;
 import com.example.demo.entity.OrderItem;
+import com.example.demo.entity.PaymentTransaction;
 import com.example.demo.entity.Product;
 import com.example.demo.entity.User;
 import com.example.demo.enums.OrderStatus;
+import com.example.demo.enums.PaymentStatus;
 import com.example.demo.repository.OrderRepository;
+import com.example.demo.repository.PaymentTransactionRepository;
 import com.example.demo.repository.ProductRepository;
 import com.example.demo.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final CartService cartService;
+    private final PaymentTransactionRepository paymentTransactionRepository;
+    private final PaystackService paystackService;
+    private final String paystackCurrency;
 
     private static final BigDecimal FIXED_SHIPPING_FEE = new BigDecimal("10.00");
 
+    public OrderService(
+            OrderRepository orderRepository,
+            ProductRepository productRepository,
+            UserRepository userRepository,
+            CartService cartService,
+            PaymentTransactionRepository paymentTransactionRepository,
+            PaystackService paystackService,
+            @Value("${paystack.currency:NGN}") String paystackCurrency) {
+        this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
+        this.cartService = cartService;
+        this.paymentTransactionRepository = paymentTransactionRepository;
+        this.paystackService = paystackService;
+        this.paystackCurrency = paystackCurrency;
+    }
+
     @Transactional
-    public OrderResponseDTO checkout(String userEmail) {
+    public OrderResponseDTO checkout(String userEmail, CheckoutRequestDTO request) {
+        String paymentReference = request.getReference().trim();
+        if (paymentTransactionRepository.existsByProviderReference(paymentReference)) {
+            throw new RuntimeException("Payment reference has already been used");
+        }
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
 
@@ -46,13 +75,8 @@ public class OrderService {
             throw new RuntimeException("Cannot checkout with an empty cart");
         }
 
-        Order order = Order.builder()
-                .user(user)
-                .status(OrderStatus.PENDING_PAYMENT)
-                .shippingFee(FIXED_SHIPPING_FEE)
-                .build();
-
         BigDecimal subtotal = BigDecimal.ZERO;
+        List<Product> products = new ArrayList<>();
 
         for (CartItemRedisDTO cartItem : cart.getItems()) {
             Product product = productRepository.findById(cartItem.getProductId())
@@ -64,7 +88,32 @@ public class OrderService {
 
             BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             subtotal = subtotal.add(lineTotal);
+            products.add(product);
+        }
 
+        BigDecimal grandTotal = subtotal.add(FIXED_SHIPPING_FEE);
+        long expectedAmount = grandTotal
+                .setScale(2, RoundingMode.UNNECESSARY)
+                .movePointRight(2)
+                .longValueExact();
+        PaystackTransaction verifiedPayment = paystackService.verifyTransaction(paymentReference);
+        if (!"success".equalsIgnoreCase(verifiedPayment.status())
+                || !paymentReference.equals(verifiedPayment.reference())
+                || verifiedPayment.amount() != expectedAmount
+                || !paystackCurrency.equalsIgnoreCase(verifiedPayment.currency())) {
+            throw new RuntimeException("Paystack payment does not match the cart total and currency");
+        }
+
+        Order order = Order.builder()
+                .user(user)
+                .status(OrderStatus.PAID)
+                .shippingFee(FIXED_SHIPPING_FEE)
+                .build();
+
+        for (int i = 0; i < cart.getItems().size(); i++) {
+            CartItemRedisDTO cartItem = cart.getItems().get(i);
+            Product product = products.get(i);
+            BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)
@@ -80,13 +129,19 @@ public class OrderService {
             order.getItems().add(orderItem);
         }
 
-        BigDecimal grandTotal = subtotal.add(FIXED_SHIPPING_FEE);
         order.setSubtotal(subtotal);
         order.setGrandTotal(grandTotal);
         order.setTotalAmount(grandTotal);
         order.setPriceAtPurchase(grandTotal);
 
         Order savedOrder = orderRepository.save(order);
+
+        PaymentTransaction paymentTransaction = new PaymentTransaction();
+        paymentTransaction.setOrder(savedOrder);
+        paymentTransaction.setProviderReference(paymentReference);
+        paymentTransaction.setAmount(grandTotal);
+        paymentTransaction.setStatus(PaymentStatus.SUCCESS);
+        paymentTransactionRepository.save(paymentTransaction);
 
         cartService.clearCart(userEmail);
 

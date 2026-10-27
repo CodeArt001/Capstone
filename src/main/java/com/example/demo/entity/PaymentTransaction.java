@@ -17,9 +17,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "payment_transactions")
+@Table(name = "payment_transactions", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_payment_provider_reference", columnNames = "provider_reference")
+})
 public class PaymentTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +32,7 @@ public class PaymentTransaction {
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
+    @Column(name = "provider_reference", nullable = false)
     private String providerReference;
 
     @Column(nullable = false)
@@ -41,7 +45,7 @@ public class PaymentTransaction {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    private PaymentTransaction() {
+    public PaymentTransaction() {
 
     }
 
@@ -67,6 +71,14 @@ public class PaymentTransaction {
 
     public void setProviderReference(String providerReference) {
         this.providerReference = providerReference;
+    }
+
+    public PaymentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PaymentStatus status) {
+        this.status = status;
     }
 
     public BigDecimal getAmount() {

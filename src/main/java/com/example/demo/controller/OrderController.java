@@ -8,12 +8,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.dto.CheckoutRequestDTO;
 import com.example.demo.dto.OrderResponseDTO;
 import com.example.demo.service.OrderService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -24,9 +27,11 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/checkout")
-    public ResponseEntity<OrderResponseDTO> checkout(Authentication authentication) {
+    public ResponseEntity<OrderResponseDTO> checkout(
+            @Valid @RequestBody CheckoutRequestDTO request,
+            Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(orderService.checkout(authentication.getName()));
+                .body(orderService.checkout(authentication.getName(), request));
     }
 
     @GetMapping

@@ -5,6 +5,12 @@ The following was discovered as part of building this project:
 
 # Getting Started
 
+Set the backend environment variable `PAYSTACK_SECRET_KEY` to your Paystack secret key.
+Checkout accepts the Paystack transaction `reference` in its JSON body and verifies it
+with Paystack before creating an order.
+The expected amount is calculated from current product prices and shipping on the server,
+and compared in the configured currency (`PAYSTACK_CURRENCY`, default `NGN`).
+
 ### Reference Documentation
 For further reference, please consider the following sections:
 
@@ -28,4 +34,3 @@ Due to Maven's design, elements are inherited from the parent POM to the project
 While most of the inheritance is fine, it also inherits unwanted elements like `<license>` and `<developers>` from the parent.
 To prevent this, the project POM contains empty overrides for these elements.
 If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
-

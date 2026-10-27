@@ -9,4 +9,5 @@ import com.example.demo.entity.PaymentTransaction;
 @Repository
 public interface PaymentTransactionRepository extends JpaRepository <PaymentTransaction, Long> {
     Optional<PaymentTransaction> findByOrderId(Long orderId);
+    boolean existsByProviderReference(String providerReference);
 }
